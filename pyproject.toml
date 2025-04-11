@@ -1,0 +1,16 @@
+[project]
+name = "Ai-researcher"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "Lacey W.", email = "lacey.m.washington@gmail.com"},
+]
+dependencies = ["arxiv>=2.2.0", "llama-index>=0.12.29", "python-dotenv>=1.1.0", "notebook>=7.4.0"]
+requires-python = "==3.12.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+
+[tool.pdm]
+distribution = false
+
