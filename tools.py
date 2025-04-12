@@ -5,7 +5,7 @@ import os
 client = arxiv.Client()
 
 
-def fetch_arxiv_papers(title: str, paper_count: int):
+def fetch_from_arxiv(title: str, paper_count: int):
     search_query = f'all:"{title}"'
     search = arxiv.Search(
         query=search_query,
