@@ -22,7 +22,7 @@ def fetch_arxiv_papers(title: str, paper_count: int):
           "journal_ref": result.journal_ref,
           "doi": result.doi,
           "primary_category": result.primary_category,
-          "category": result.category,
+          "categories": result.categories,
           "pdf_url": result.pdf_url,
           "arxiv_url": result.entry_id,
           "authors": [author.name for author in result.authors]
@@ -39,6 +39,6 @@ def download_pdf(pdf_url: str, output_file_name: str):
         response.raise_for_status()
         with open(full_output_path, "wb") as file:
           file.write(response.content)
-        return f"PDF saved as {full_output_path}"
+        return f"PDF saved as '{full_output_path}'."
       except requests.exceptions.RequestException as e:
        return f"Error downloading PDF: {e}"
