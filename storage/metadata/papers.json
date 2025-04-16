@@ -1,0 +1,298 @@
+[
+  {
+    "entry_id": "http://arxiv.org/abs/2504.10487v1",
+    "title": "FLOSS: Free Lunch in Open-vocabulary Semantic Segmentation",
+    "summary": "Recent Open-Vocabulary Semantic Segmentation (OVSS) models extend the CLIP model to segmentation while maintaining the use of multiple templates (e.g., a photo of <class>, a sketch of a <class>, etc.) for constructing class-wise averaged text embeddings, acting as a classifier. In this paper, we challenge this status quo and investigate the impact of templates for OVSS. Empirically, we observe that for each class, there exist single-template classifiers significantly outperforming the conventional averaged classifier. We refer to them as class-experts. Given access to unlabeled images and without any training involved, we estimate these experts by leveraging the class-wise prediction entropy of single-template classifiers, selecting as class-wise experts those which yield the lowest entropy. All experts, each specializing in a specific class, collaborate in a newly proposed fusion method to generate more accurate OVSS predictions. Our plug-and-play method, coined FLOSS, is orthogonal and complementary to existing OVSS methods, offering a ''free lunch'' to systematically improve OVSS without labels and additional training. Extensive experiments demonstrate that FLOSS consistently boosts state-of-the-art methods on various OVSS benchmarks. Moreover, the selected expert templates can generalize well from one dataset to others sharing the same semantic categories, yet exhibiting distribution shifts. Additionally, we obtain satisfactory improvements under a low-data regime, where only a few unlabeled images are available. Our code is available at https://github.com/yasserben/FLOSS .",
+    "published": "2025-04-14T17:59:59+00:00",
+    "updated": "2025-04-14T17:59:59+00:00",
+    "authors": [
+      "Yasser Benigmim",
+      "Mohammad Fahes",
+      "Tuan-Hung Vu",
+      "Andrei Bursuc",
+      "Raoul de Charette"
+    ],
+    "comment": "Project Page: https://yasserben.github.io/FLOSS/",
+    "journal_ref": "",
+    "doi": "",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV",
+      "cs.LG"
+    ],
+    "links": [
+      "http://arxiv.org/abs/2504.10487v1",
+      "http://arxiv.org/pdf/2504.10487v1"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/2504.10487v1",
+    "arxiv_url": "https://arxiv.org/abs/2504.10487v1",
+    "downloadable": true
+  },
+  {
+    "entry_id": "http://arxiv.org/abs/2504.10485v1",
+    "title": "Decoupled Diffusion Sparks Adaptive Scene Generation",
+    "summary": "Controllable scene generation could reduce the cost of diverse data collection substantially for autonomous driving. Prior works formulate the traffic layout generation as predictive progress, either by denoising entire sequences at once or by iteratively predicting the next frame. However, full sequence denoising hinders online reaction, while the latter's short-sighted next-frame prediction lacks precise goal-state guidance. Further, the learned model struggles to generate complex or challenging scenarios due to a large number of safe and ordinal driving behaviors from open datasets. To overcome these, we introduce Nexus, a decoupled scene generation framework that improves reactivity and goal conditioning by simulating both ordinal and challenging scenarios from fine-grained tokens with independent noise states. At the core of the decoupled pipeline is the integration of a partial noise-masking training strategy and a noise-aware schedule that ensures timely environmental updates throughout the denoising process. To complement challenging scenario generation, we collect a dataset consisting of complex corner cases. It covers 540 hours of simulated data, including high-risk interactions such as cut-in, sudden braking, and collision. Nexus achieves superior generation realism while preserving reactivity and goal orientation, with a 40% reduction in displacement error. We further demonstrate that Nexus improves closed-loop planning by 20% through data augmentation and showcase its capability in safety-critical data generation.",
+    "published": "2025-04-14T17:59:57+00:00",
+    "updated": "2025-04-14T17:59:57+00:00",
+    "authors": [
+      "Yunsong Zhou",
+      "Naisheng Ye",
+      "William Ljungbergh",
+      "Tianyu Li",
+      "Jiazhi Yang",
+      "Zetong Yang",
+      "Hongzi Zhu",
+      "Christoffer Petersson",
+      "Hongyang Li"
+    ],
+    "comment": "",
+    "journal_ref": "",
+    "doi": "",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV"
+    ],
+    "links": [
+      "http://arxiv.org/abs/2504.10485v1",
+      "http://arxiv.org/pdf/2504.10485v1"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/2504.10485v1",
+    "arxiv_url": "https://arxiv.org/abs/2504.10485v1",
+    "downloadable": true
+  },
+  {
+    "entry_id": "http://arxiv.org/abs/2504.10483v1",
+    "title": "REPA-E: Unlocking VAE for End-to-End Tuning with Latent Diffusion Transformers",
+    "summary": "In this paper we tackle a fundamental question: \"Can we train latent diffusion models together with the variational auto-encoder (VAE) tokenizer in an end-to-end manner?\" Traditional deep-learning wisdom dictates that end-to-end training is often preferable when possible. However, for latent diffusion transformers, it is observed that end-to-end training both VAE and diffusion-model using standard diffusion-loss is ineffective, even causing a degradation in final performance. We show that while diffusion loss is ineffective, end-to-end training can be unlocked through the representation-alignment (REPA) loss -- allowing both VAE and diffusion model to be jointly tuned during the training process. Despite its simplicity, the proposed training recipe (REPA-E) shows remarkable performance; speeding up diffusion model training by over 17x and 45x over REPA and vanilla training recipes, respectively. Interestingly, we observe that end-to-end tuning with REPA-E also improves the VAE itself; leading to improved latent space structure and downstream generation performance. In terms of final performance, our approach sets a new state-of-the-art; achieving FID of 1.26 and 1.83 with and without classifier-free guidance on ImageNet 256 x 256. Code is available at https://end2end-diffusion.github.io.",
+    "published": "2025-04-14T17:59:53+00:00",
+    "updated": "2025-04-14T17:59:53+00:00",
+    "authors": [
+      "Xingjian Leng",
+      "Jaskirat Singh",
+      "Yunzhong Hou",
+      "Zhenchang Xing",
+      "Saining Xie",
+      "Liang Zheng"
+    ],
+    "comment": "",
+    "journal_ref": "",
+    "doi": "",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV",
+      "cs.LG"
+    ],
+    "links": [
+      "http://arxiv.org/abs/2504.10483v1",
+      "http://arxiv.org/pdf/2504.10483v1"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/2504.10483v1",
+    "arxiv_url": "https://arxiv.org/abs/2504.10483v1",
+    "downloadable": true
+  },
+  {
+    "entry_id": "http://arxiv.org/abs/2504.10478v2",
+    "title": "Weight Ensembling Improves Reasoning in Language Models",
+    "summary": "We investigate a failure mode that arises during the training of reasoning models, where the diversity of generations begins to collapse, leading to suboptimal test-time scaling. Notably, the Pass@1 rate reliably improves during supervised finetuning (SFT), but Pass@k rapidly deteriorates. Surprisingly, a simple intervention of interpolating the weights of the latest SFT checkpoint with an early checkpoint, otherwise known as WiSE-FT, almost completely recovers Pass@k while also improving Pass@1. The WiSE-FT variant achieves better test-time scaling (Best@k, majority vote) and achieves superior results with less data when tuned further by reinforcement learning. Finally, we find that WiSE-FT provides complementary performance gains that cannot be achieved only through diversity-inducing decoding strategies, like temperature scaling. We formalize a bias-variance tradeoff of Pass@k with respect to the expectation and variance of Pass@1 over the test distribution. We find that WiSE-FT can reduce bias and variance simultaneously, while temperature scaling inherently trades-off between bias and variance.",
+    "published": "2025-04-14T17:59:07+00:00",
+    "updated": "2025-04-15T17:46:59+00:00",
+    "authors": [
+      "Xingyu Dang",
+      "Christina Baek",
+      "Kaiyue Wen",
+      "Zico Kolter",
+      "Aditi Raghunathan"
+    ],
+    "comment": "",
+    "journal_ref": "",
+    "doi": "",
+    "primary_category": "cs.LG",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "links": [
+      "http://arxiv.org/abs/2504.10478v2",
+      "http://arxiv.org/pdf/2504.10478v2"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/2504.10478v2",
+    "arxiv_url": "https://arxiv.org/abs/2504.10478v2",
+    "downloadable": true
+  },
+  {
+    "entry_id": "http://arxiv.org/abs/2504.10474v1",
+    "title": "Co-optimizing Physical Reconfiguration Parameters and Controllers for an Origami-inspired Reconfigurable Manipulator",
+    "summary": "Reconfigurable robots that can change their physical configuration post-fabrication have demonstrate their potential in adapting to different environments or tasks. However, it is challenging to determine how to optimally adjust reconfigurable parameters for a given task, especially when the controller depends on the robot's configuration. In this paper, we address this problem using a tendon-driven reconfigurable manipulator composed of multiple serially connected origami-inspired modules as an example. Under tendon actuation, these modules can achieve different shapes and motions, governed by joint stiffnesses (reconfiguration parameters) and the tendon displacements (control inputs). We leverage recent advances in co-optimization of design and control for robotic system to treat reconfiguration parameters as design variables and optimize them using reinforcement learning techniques. We first establish a forward model based on the minimum potential energy method to predict the shape of the manipulator under tendon actuations. Using the forward model as the environment dynamics, we then co-optimize the control policy (on the tendon displacements) and joint stiffnesses of the modules for goal reaching tasks while ensuring collision avoidance. Through co-optimization, we obtain optimized joint stiffness and the corresponding optimal control policy to enable the manipulator to accomplish the task that would be infeasible with fixed reconfiguration parameters (i.e., fixed joint stiffness). We envision the co-optimization framework can be extended to other reconfigurable robotic systems, enabling them to optimally adapt their configuration and behavior for diverse tasks and environments.",
+    "published": "2025-04-14T17:56:38+00:00",
+    "updated": "2025-04-14T17:56:38+00:00",
+    "authors": [
+      "Zhe Chen",
+      "Li Chen",
+      "Hao Zhang",
+      "Jianguo Zhao"
+    ],
+    "comment": "",
+    "journal_ref": "",
+    "doi": "",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO"
+    ],
+    "links": [
+      "http://arxiv.org/abs/2504.10474v1",
+      "http://arxiv.org/pdf/2504.10474v1"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/2504.10474v1",
+    "arxiv_url": "https://arxiv.org/abs/2504.10474v1",
+    "downloadable": true
+  },
+  {
+    "entry_id": "http://arxiv.org/abs/2504.10465v1",
+    "title": "Pixel-SAIL: Single Transformer For Pixel-Grounded Understanding",
+    "summary": "Multimodal Large Language Models (MLLMs) achieve remarkable performance for fine-grained pixel-level understanding tasks. However, all the works rely heavily on extra components, such as vision encoder (CLIP), segmentation experts, leading to high system complexity and limiting model scaling. In this work, our goal is to explore a highly simplified MLLM without introducing extra components. Our work is motivated by the recent works on Single trAnsformer as a unified vIsion-Language Model (SAIL) design, where these works jointly learn vision tokens and text tokens in transformers. We present Pixel-SAIL, a single transformer for pixel-wise MLLM tasks. In particular, we present three technical improvements on the plain baseline. First, we design a learnable upsampling module to refine visual token features. Secondly, we propose a novel visual prompt injection strategy to enable the single transformer to understand visual prompt inputs and benefit from the early fusion of visual prompt embeddings and vision tokens. Thirdly, we introduce a vision expert distillation strategy to efficiently enhance the single transformer's fine-grained feature extraction capability. In addition, we have collected a comprehensive pixel understanding benchmark (PerBench), using a manual check. It includes three tasks: detailed object description, visual prompt-based question answering, and visual-text referring segmentation. Extensive experiments on four referring segmentation benchmarks, one visual prompt benchmark, and our PerBench show that our Pixel-SAIL achieves comparable or even better results with a much simpler pipeline. Code and model will be released at https://github.com/magic-research/Sa2VA.",
+    "published": "2025-04-14T17:52:22+00:00",
+    "updated": "2025-04-14T17:52:22+00:00",
+    "authors": [
+      "Tao Zhang",
+      "Xiangtai Li",
+      "Zilong Huang",
+      "Yanwei Li",
+      "Weixian Lei",
+      "Xueqing Deng",
+      "Shihao Chen",
+      "Shunping Ji",
+      "Jiashi Feng"
+    ],
+    "comment": "",
+    "journal_ref": "",
+    "doi": "",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV"
+    ],
+    "links": [
+      "http://arxiv.org/abs/2504.10465v1",
+      "http://arxiv.org/pdf/2504.10465v1"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/2504.10465v1",
+    "arxiv_url": "https://arxiv.org/abs/2504.10465v1",
+    "downloadable": true
+  },
+  {
+    "entry_id": "http://arxiv.org/abs/2504.10462v1",
+    "title": "The Scalability of Simplicity: Empirical Analysis of Vision-Language Learning with a Single Transformer",
+    "summary": "This paper introduces SAIL, a single transformer unified multimodal large language model (MLLM) that integrates raw pixel encoding and language decoding within a singular architecture. Unlike existing modular MLLMs, which rely on a pre-trained vision transformer (ViT), SAIL eliminates the need for a separate vision encoder, presenting a more minimalist architecture design. Instead of introducing novel architectural components, SAIL adapts mix-attention mechanisms and multimodal positional encodings to better align with the distinct characteristics of visual and textual modalities. We systematically compare SAIL's properties-including scalability, cross-modal information flow patterns, and visual representation capabilities-with those of modular MLLMs. By scaling both training data and model size, SAIL achieves performance comparable to modular MLLMs. Notably, the removal of pretrained ViT components enhances SAIL's scalability and results in significantly different cross-modal information flow patterns. Moreover, SAIL demonstrates strong visual representation capabilities, achieving results on par with ViT-22B in vision tasks such as semantic segmentation. Code and models are available at https://github.com/bytedance/SAIL.",
+    "published": "2025-04-14T17:50:20+00:00",
+    "updated": "2025-04-14T17:50:20+00:00",
+    "authors": [
+      "Weixian Lei",
+      "Jiacong Wang",
+      "Haochen Wang",
+      "Xiangtai Li",
+      "Jun Hao Liew",
+      "Jiashi Feng",
+      "Zilong Huang"
+    ],
+    "comment": "",
+    "journal_ref": "",
+    "doi": "",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV"
+    ],
+    "links": [
+      "http://arxiv.org/abs/2504.10462v1",
+      "http://arxiv.org/pdf/2504.10462v1"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/2504.10462v1",
+    "arxiv_url": "https://arxiv.org/abs/2504.10462v1",
+    "downloadable": true
+  },
+  {
+    "entry_id": "http://arxiv.org/abs/2504.10458v2",
+    "title": "GUI-R1 : A Generalist R1-Style Vision-Language Action Model For GUI Agents",
+    "summary": "Existing efforts in building Graphical User Interface (GUI) agents largely rely on the training paradigm of supervised fine-tuning on Large Vision-Language Models (LVLMs). However, this approach not only demands extensive amounts of training data but also struggles to effectively understand GUI screenshots and generalize to unseen interfaces. The issue significantly limits its application in real-world scenarios, especially for high-level tasks. Inspired by Reinforcement Fine-Tuning (RFT) in large reasoning models (e.g., DeepSeek-R1), which efficiently enhances the problem-solving capabilities of large language models in real-world settings, we propose \\name, the first reinforcement learning framework designed to enhance the GUI capabilities of LVLMs in high-level real-world task scenarios, through unified action space rule modeling. By leveraging a small amount of carefully curated high-quality data across multiple platforms (including Windows, Linux, MacOS, Android, and Web) and employing policy optimization algorithms such as Group Relative Policy Optimization (GRPO) to update the model, \\name achieves superior performance using only 0.02\\% of the data (3K vs. 13M) compared to previous state-of-the-art methods like OS-Atlas across eight benchmarks spanning three different platforms (mobile, desktop, and web). These results demonstrate the immense potential of reinforcement learning based on unified action space rule modeling in improving the execution capabilities of LVLMs for real-world GUI agent tasks.",
+    "published": "2025-04-14T17:45:54+00:00",
+    "updated": "2025-04-15T14:42:43+00:00",
+    "authors": [
+      "Xiaobo Xia",
+      "Run Luo"
+    ],
+    "comment": "",
+    "journal_ref": "",
+    "doi": "",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV",
+      "cs.CL",
+      "cs.HC"
+    ],
+    "links": [
+      "http://arxiv.org/abs/2504.10458v2",
+      "http://arxiv.org/pdf/2504.10458v2"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/2504.10458v2",
+    "arxiv_url": "https://arxiv.org/abs/2504.10458v2",
+    "downloadable": true
+  },
+  {
+    "entry_id": "http://arxiv.org/abs/2504.10456v1",
+    "title": "Privacy-Preserving Distributed Link Predictions Among Peers in Online Classrooms Using Federated Learning",
+    "summary": "Social interactions among classroom peers, represented as social learning networks (SLNs), play a crucial role in enhancing learning outcomes. While SLN analysis has recently garnered attention, most existing approaches rely on centralized training, where data is aggregated and processed on a local/cloud server with direct access to raw data. However, in real-world educational settings, such direct access across multiple classrooms is often restricted due to privacy concerns. Furthermore, training models on isolated classroom data prevents the identification of common interaction patterns that exist across multiple classrooms, thereby limiting model performance. To address these challenges, we propose one of the first frameworks that integrates Federated Learning (FL), a distributed and collaborative machine learning (ML) paradigm, with SLNs derived from students' interactions in multiple classrooms' online forums to predict future link formations (i.e., interactions) among students. By leveraging FL, our approach enables collaborative model training across multiple classrooms while preserving data privacy, as it eliminates the need for raw data centralization. Recognizing that each classroom may exhibit unique student interaction dynamics, we further employ model personalization techniques to adapt the FL model to individual classroom characteristics. Our results demonstrate the effectiveness of our approach in capturing both shared and classroom-specific representations of student interactions in SLNs. Additionally, we utilize explainable AI (XAI) techniques to interpret model predictions, identifying key factors that influence link formation across different classrooms. These insights unveil the drivers of social learning interactions within a privacy-preserving, collaborative, and distributed ML framework -- an aspect that has not been explored before.",
+    "published": "2025-04-14T17:43:11+00:00",
+    "updated": "2025-04-14T17:43:11+00:00",
+    "authors": [
+      "Anurata Prabha Hridi",
+      "Muntasir Hoq",
+      "Zhikai Gao",
+      "Collin Lynch",
+      "Rajeev Sahay",
+      "Seyyedali Hosseinalipour",
+      "Bita Akram"
+    ],
+    "comment": "Accepted for publication in Educational Data Mining Conference (EDM)\n  2025",
+    "journal_ref": "",
+    "doi": "",
+    "primary_category": "cs.SI",
+    "categories": [
+      "cs.SI"
+    ],
+    "links": [
+      "http://arxiv.org/abs/2504.10456v1",
+      "http://arxiv.org/pdf/2504.10456v1"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/2504.10456v1",
+    "arxiv_url": "https://arxiv.org/abs/2504.10456v1",
+    "downloadable": true
+  },
+  {
+    "entry_id": "http://arxiv.org/abs/2504.10453v1",
+    "title": "Anchors no more: Using peculiar velocities to constrain $H_0$ and the primordial Universe without calibrators",
+    "summary": "We develop a novel approach to constrain the Hubble parameter $H_0$ and the primordial power spectrum amplitude $A_\\mathrm{s}$ using supernovae type Ia (SNIa) data. By considering SNIa as tracers of the peculiar velocity field, we can model their distance and their covariance as a function of cosmological parameters without the need of calibrators like Cepheids; this yields a new independent probe of the large-scale structure based on SNIa data without distance anchors. Crucially, we implement a differentiable pipeline in JAX, including efficient emulators and affine sampling, reducing inference time from years to hours on a single GPU. We first validate our method on mock datasets, demonstrating that we can constrain $H_0$ and $\\log 10^{10}A_\\mathrm{s}$ within $\\sim10\\%$ using $\\sim10^3$ SNIa. We then test our pipeline with SNIa from an $N$-body simulation, obtaining $7\\%$-level unbiased constraints on $H_0$ with a moderate noise level. We finally apply our method to Pantheon+ data, constraining $H_0$ at the $10\\%$ level without Cepheids when fixing $A_\\mathrm{s}$ to its $\\it{Planck}$ value. On the other hand, we obtain $15\\%$-level constraints on $\\log 10^{10}A_\\mathrm{s}$ in agreement with $\\it{Planck}$ when including Cepheids in the analysis. In light of upcoming observations of low redshift SNIa from the Zwicky Transient Facility and the Vera Rubin Legacy Survey of Space and Time, surveys for which our method will develop its full potential, we make our code publicly available.",
+    "published": "2025-04-14T17:40:18+00:00",
+    "updated": "2025-04-14T17:40:18+00:00",
+    "authors": [
+      "Davide Piras",
+      "Francesco Sorrenti",
+      "Ruth Durrer",
+      "Martin Kunz"
+    ],
+    "comment": "22 pages, 5 figures, comments welcome. Code available at\n  https://github.com/dpiras/veloce",
+    "journal_ref": "",
+    "doi": "",
+    "primary_category": "astro-ph.CO",
+    "categories": [
+      "astro-ph.CO",
+      "astro-ph.IM",
+      "cs.LG",
+      "gr-qc"
+    ],
+    "links": [
+      "http://arxiv.org/abs/2504.10453v1",
+      "http://arxiv.org/pdf/2504.10453v1"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/2504.10453v1",
+    "arxiv_url": "https://arxiv.org/abs/2504.10453v1",
+    "downloadable": true
+  }
+]
