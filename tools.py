@@ -1,178 +1,235 @@
 import arxiv
 import requests
-
-from typing import List, Dict, Optional
-from datetime import datetime, timedelta 
-import time
+import fitz
+import pytesseract
+from pdf2image import convert_from_path
+import re
+import time 
+from typing import List, Dict
 from pathlib import Path
 import logging
-from tenacity import retry, stop_after_attempt, wait_exponential 
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("research_tools.log"),  # Save to file
-        logging.StreamHandler()  # Print to console
-    ]
+        logging.FileHandler("research_tools.log"), 
+        logging.StreamHandler(),
+    ],
 )
 
 logger = logging.getLogger(__name__)
 
-# Configure arXiv client with enhanced settings
-client = arxiv.Client(
-    page_size=100,
-    delay_seconds=5,
-    num_retries=8
-)
+
+client = arxiv.Client()
+
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-def fetch_from_arxiv(query: str, max_results: int = 10, days_old: Optional[int] = None) -> List[Dict]:
-    """
-    Robust arXiv paper fetcher with complete field handling
-    Args:
-        query: Search query
-        max_results: Number of papers to return (1-1000)
-        days_old: Only return papers from last N days
-    Returns:
-        List of paper dictionaries with all available metadata
-    """
+def fetch_from_arxiv(title: str, max_results: int = 10):
+    if not isinstance(title, str) or not title.strip():
+        logger.error("Invalid title format")
+        raise ValueError("Title must be a non-empty string")
+    if not isinstance(max_results, int) or max_results <= 0:
+        logger.error(f"Invalid max_results: {max_results}")
+        raise ValueError("max_results must be a positive integer")
+
     try:
-        # Build date-filtered query if specified
-        if days_old:
-            cutoff_date = datetime.now() - timedelta(days=days_old)
-            query = f"{query} AND submittedDate:[{cutoff_date.strftime('%Y%m%d')} TO *]"
-        
+        search_query = f'all:"{title}"'
         search = arxiv.Search(
-            query=query,
-            max_results=min(max_results, 1000),  # arXiv's max limit
+            query=search_query,
+            max_results=max_results,
             sort_by=arxiv.SortCriterion.SubmittedDate,
-            sort_order=arxiv.SortOrder.Descending
         )
-        
+
         papers = []
         for result in client.results(search):
             try:
-                paper = {
-                    "entry_id": result.entry_id,
+                paper_info = {
                     "title": result.title,
-                    "summary": clean_text(result.summary),
-                    "published": result.published.isoformat(),
-                    "updated": result.updated.isoformat(),
-                    "authors": [author.name for author in result.authors],
-                    "comment": result.comment or "",
-                    "journal_ref": result.journal_ref or "",
-                    "doi": result.doi or "",
+                    "summary": result.summary,
+                    "published": result.published,
+                    "journal_ref": result.journal_ref,
+                    "doi": result.doi,
                     "primary_category": result.primary_category,
                     "categories": result.categories,
-                    "links": [link.href for link in result.links],
-                    "pdf_url": next((link.href for link in result.links 
-                                  if link.title == "pdf"), None),
-                    "arxiv_url": f"https://arxiv.org/abs/{result.entry_id.split('/')[-1]}",
-                    "downloadable": any(link.title == "pdf" for link in result.links)
+                    "pdf_url": result.pdf_url,
+                    "arxiv_url": result.entry_id,
+                    "authors": [author.name for author in result.authors],
                 }
-                papers.append(paper)
+                papers.append(paper_info)
             except Exception as e:
-                logger.warning(f"Error processing paper {result.entry_id}: {str(e)}")
+                logger.warning(
+                    f"Error processing paper {getattr(result, 'entry_id', 'unknown')}: {str(e)}"
+                )
                 continue
-                
+            
+        print(papers)
+        if not papers:
+            logger.warning(f"No valid papers found for query: {title}")
         return papers
-        
+
     except arxiv.ArXivError as e:
         logger.error(f"arXiv API error: {str(e)}")
-        raise ValueError(f"arXiv API request failed: {str(e)}")
+        raise ValueError(f"arXiv search failed. Please try different terms. Technical details: {str(e)}")
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        raise RuntimeError(f"Paper fetching failed: {str(e)}")
-      
-def download_pdf(pdf_url: str, output_file_name: Optional[str] = None, timeout: int = 45) -> str:
-    """
-    Robust PDF downloader with:
-    - Automatic arXiv ID filename
-    - Timeout handling
-    - Duplicate detection
-    """
-    try:
-        papers_dir = Path("papers")
-        papers_dir.mkdir(exist_ok=True)
-        
-        if not output_file_name:
-            arxiv_id = pdf_url.split('/')[-1].replace('.pdf', '')
-            output_file_name = f"{arxiv_id}.pdf"
+        logger.exception("Unexpected arXiv fetch error")  
+        raise RuntimeError(f"Temporary system issue. Please try again later. Reference: {id(e)}") from e
 
-        full_path = papers_dir / output_file_name
+
+    
+def download_pdf(pdf_url: str, output_file_name: str, storage_dir: Path = Path("storage/papers")) -> str:
+    try:
+        # Ensure storage directory exists
+        storage_dir.mkdir(parents=True, exist_ok=True)
         
+        full_path = storage_dir / output_file_name
+
         if full_path.exists():
             return str(full_path.resolve())
 
-        response = requests.get(
-            pdf_url,
-            stream=True,
-            timeout=timeout,
-            headers={'User-Agent': 'ResearchBot/1.0'}
-        )
-        response.raise_for_status()
-
-        with open(full_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+        # Download with 10s timeout and retry once on failure
+        for attempt in range(2):
+            try:
+                response = requests.get(pdf_url, timeout=10)
+                response.raise_for_status()
                 
-        return str(full_path.resolve())
-
+                with open(full_path, "wb") as file:
+                    file.write(response.content)
+                    
+                logger.info(f"Downloaded {output_file_name} to {full_path}")
+                return str(full_path.resolve())
+                
+            except requests.exceptions.Timeout:
+                if attempt == 0:
+                    logger.warning(f"Timeout downloading {pdf_url}, retrying...")
+                    continue
+                raise
+                
     except Exception as e:
         logger.error(f"PDF download failed: {str(e)}")
+        # Clean up partially downloaded file if it exists
+        if 'full_path' in locals() and full_path.exists():
+            full_path.unlink()
         raise
+
+
+def extract_pdf_text(
+    pdf_path: Path,
+    use_ocr: bool = False,
+    ocr_languages: str = 'eng'
+) -> str:
+    """
+    Robust PDF text extraction with fallbacks:
+    1. Try PyMuPDF (fastest)
+    2. Try pdfplumber (better for some PDFs)
+    3. Fallback to OCR if needed
+    
+    Args:
+        pdf_path: Path to PDF file
+        use_ocr: Force OCR even if text layers exist
+        ocr_languages: Languages for Tesseract (e.g., 'eng+fra')
+    
+    Returns:
+        Extracted text
+    """
+    text = ""
+    
+    # Method 1: PyMuPDF (fitz)
+    if not use_ocr:
+        try:
+            with fitz.open(pdf_path) as doc:
+                text = "\n".join(page.get_text() for page in doc)
+            if text.strip():
+                return text
+        except Exception as e:
+            logger.warning(f"PyMuPDF failed: {str(e)}")
+    
+    # Method 2: pdfplumber
+    try:
+        import pdfplumber
+        with pdfplumber.open(pdf_path) as pdf:
+            text = "\n".join(
+                page.extract_text() 
+                for page in pdf.pages 
+                if page.extract_text()
+            )
+        if text.strip():
+            return text
+    except ImportError:
+        logger.warning("pdfplumber not available")
+    except Exception as e:
+        logger.warning(f"pdfplumber failed: {str(e)}")
+    
+    # Method 3: OCR
+    try:
+        images = convert_from_path(pdf_path)
+        text = "\n".join(
+            pytesseract.image_to_string(
+                image, 
+                lang=ocr_languages
+            ) 
+            for image in images
+        )
+        return text
+    except Exception as e:
+        logger.error(f"OCR failed: {str(e)}")
+        raise ValueError(f"All text extraction methods failed: {str(e)}")
+    
+def analyze_pdf_structure(pdf_path: Path) -> Dict:
+    """
+    Extract PDF metadata and structure:
+    - Sections
+    - Figures/Tables
+    - Math content
+    """
+    try:
+        text = extract_pdf_text(pdf_path)
+        
+        # Extract sections
+        sections = {}
+        for match in re.finditer(r'\n(\d+\.\s*[A-Z][^\n]+)', text):
+            sections[match.group(1)] = match.start()
+        
+        # Count special elements
+        stats = {
+            'figures': text.lower().count('figure'),
+            'tables': text.lower().count('table'),
+            'equations': text.count('$') // 2,  # Rough estimate
+            'pages': len(fitz.open(pdf_path))
+        }
+        
+        return {
+            'sections': sections,
+            'stats': stats,
+            'sample_text': text[:1000] + '...' if text else ''
+        }
+    except Exception as e:
+        logger.error(f"PDF analysis failed: {str(e)}")
+        return {'error': str(e)}
 
 def clean_text(text: str) -> str:
     """Normalize text for LLM processing"""
-    return ' '.join(text.replace('\n', ' ').replace('\t', ' ').split())
+    return " ".join(text.replace("\n", " ").replace("\t", " ").split())
 
-# Additional utilities
-def get_recent_papers(keyword: str, last_n_days: int = 30, max_papers: int = 10) -> List[Dict]:
-    return fetch_from_arxiv(
-        f'ti:"{keyword}" OR abs:"{keyword}"',  # Search title AND abstract
-        paper_count=max_papers,
-        days_old=last_n_days
-    )
-
-def batch_download(papers: List[Dict], max_workers: int = 3, delay: float = 3.0) -> Dict[str, str]:
-    """
-    Parallel PDF downloader with:
-    - Rate limiting
-    - Thread safety
-    """
-    from concurrent.futures import ThreadPoolExecutor
-    results = {}
-    
-    def _download(paper):
-        try:
-            if paper.get('pdf_url'):
-                time.sleep(delay)
-                return paper['arxiv_id'], download_pdf(paper['pdf_url'])
-        except Exception as e:
-            logger.warning(f"Failed to download {paper.get('arxiv_id')}: {str(e)}")
-            return paper.get('arxiv_id'), str(e)
-    
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        for arxiv_id, result in executor.map(_download, papers):
-            if arxiv_id:
-                results[arxiv_id] = result
-    return results
-  
 def format_arxiv_results(papers: List[Dict], query: str) -> str:
     """Convert raw arXiv results to clean Markdown output"""
     if not papers:
         return f"No papers found for '{query}'. Try broadening your search terms."
-    
+
     # Filter for relevant papers (simple keyword match)
     relevant_papers = [
-        p for p in papers 
-        if any(term.lower() in p['title'].lower() or 
-               term.lower() in p['summary'].lower()
-               for term in query.split())
-    ][:5]  # Show max 5 most relevant
-    
+        p
+        for p in papers
+        if any(
+            term.lower() in p["title"].lower() or term.lower() in p["summary"].lower()
+            for term in query.split()
+        )
+    ][
+        :5
+    ]  # Show max 5 most relevant
+
     if not relevant_papers:
         return f"No papers directly matching '{query}' found. Try different keywords."
 
@@ -186,3 +243,4 @@ def format_arxiv_results(papers: List[Dict], query: str) -> str:
         for i, p in enumerate(relevant_papers, 1)
     ]
     return "\n\n".join(formatted)
+

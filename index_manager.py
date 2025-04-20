@@ -3,13 +3,14 @@ from llama_index.core.node_parser import SemanticSplitterNodeParser, SentenceSpl
 from llama_index.core.postprocessor import SimilarityPostprocessor, KeywordNodePostprocessor
 from llama_index.core.retrievers import AutoMergingRetriever
 from llama_index.core.indices.postprocessor import FixedRecencyPostprocessor
-from llama_index.core.schema import IndexNode
 from typing import List, Dict, Optional
-from tools import fetch_from_arxiv, download_pdf, batch_download
+from tools import fetch_from_arxiv, download_pdf
 from pathlib import Path
 import json
-from datetime import datetime, timedelta
+import re
+from datetime import datetime
 import logging
+import fitz 
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class IndexManager:
         Settings.chunk_size = 1024
         Settings.chunk_overlap = 200
 
-    def fetch_and_cache_papers(self, query: str, papers_count: int = 20, days_old: Optional[int] = None) -> None:
+    def fetch_and_cache_papers(self, query: str, max_results: int = 10, days_old: Optional[int] = None) -> None:
         """
         Fetch papers from arXiv and cache metadata
         
@@ -58,7 +59,7 @@ class IndexManager:
             days_old: Only fetch papers from last N days
         """
         try:
-            self.papers = fetch_from_arxiv(query, papers_count, days_old)
+            self.papers = fetch_from_arxiv(query, max_results)
             self._save_metadata()
             logger.info(f"Fetched and cached {len(self.papers)} papers")
         except Exception as e:
@@ -78,55 +79,82 @@ class IndexManager:
         """
         try:
             downloadable = [p for p in self.papers if p.get('downloadable')][:max_downloads]
-            results = batch_download(
+            results = download_pdf(
                 downloadable,
                 delay=delay
             )
-            self._save_metadata()  # Update metadata with download status
+            self._save_metadata()
             return results
         except Exception as e:
             logger.error(f"Failed to download papers: {str(e)}")
             raise
 
-    def create_documents(self, include_pdf_text: bool = False) -> None:
+    def create_documents(self, include_pdf_text: bool = True) -> None:
         """
-        Create enriched documents with optional PDF text extraction
-        
-        Args:
-            include_pdf_text: Whether to extract text from downloaded PDFs
+        Enhanced document creator with robust PDF text extraction
         """
         self.documents = []
         for paper in self.papers:
-            # Base content from arXiv metadata
-            content = (
-                f"Title: {paper['title']}\n"
-                f"Authors: {', '.join(paper['authors'])}\n"
-                f"Abstract: {paper['summary']}\n"
-                f"Published: {paper['published']}\n"
-            )
+            # Base metadata
+            metadata = {
+                **{k: v for k, v in paper.items() if k not in ['summary', 'authors']},
+                "authors": ', '.join(paper['authors']),
+                "document_type": "research_paper",
+                "indexed_at": datetime.now().isoformat()
+            }
             
-            # Add PDF text if available and requested
+            # 1. Always include abstract and metadata
+            content_parts = [
+                f"Title: {paper['title']}",
+                f"Authors: {metadata['authors']}",
+                f"Abstract: {paper['summary']}",
+                f"Published: {paper['published']}"
+            ]
+            
+            # 2. Add full PDF text if available
+            pdf_text = ""
             if include_pdf_text and paper.get('pdf_url'):
                 pdf_path = self.pdf_dir / f"{paper['arxiv_id']}.pdf"
                 if pdf_path.exists():
                     try:
                         pdf_text = self._extract_pdf_text(pdf_path)
-                        content += f"\nFull Text Excerpts:\n{pdf_text[:10000]}"  # First 10k chars
+                        content_parts.append(f"\nFull Text:\n{pdf_text}")
+                        
+                        # Add extracted sections to metadata
+                        metadata.update(self._extract_pdf_metadata(pdf_text))
                     except Exception as e:
-                        logger.warning(f"Failed to extract PDF text: {str(e)}")
+                        logger.warning(f"PDF extraction failed for {pdf_path}: {str(e)}")
+                        content_parts.append(f"\n[PDF extraction failed: {str(e)}]")
             
             doc = Document(
-                text=content,
-                metadata={
-                    **{k: v for k, v in paper.items() if k not in ['summary', 'authors']},
-                    "authors": ', '.join(paper['authors']),
-                    "document_type": "research_paper",
-                    "indexed_at": datetime.now().isoformat()
-                },
+                text="\n".join(content_parts),
+                metadata=metadata,
                 excluded_llm_metadata_keys=["pdf_url", "arxiv_url"]
             )
             self.documents.append(doc)
-
+            
+    def _extract_pdf_metadata(self, pdf_text: str) -> Dict[str, str]:
+        """Extract key sections from PDF text for enhanced metadata"""
+        metadata = {}
+        
+        # Extract key sections using regex
+        introduction_match = re.search(r'(?i)\n(1|i)\.?\s*introduction(.+?)(\n(2|ii)\.|\Z)', 
+                                     pdf_text, re.DOTALL)
+        if introduction_match:
+            metadata["introduction_excerpt"] = introduction_match.group(2)[:500] + "..."
+            
+        conclusion_match = re.search(r'(?i)\n(7|vii)\.?\s*conclusion(.+?)(\nreferences|\Z)', 
+                                   pdf_text, re.DOTALL)
+        if conclusion_match:
+            metadata["conclusion_excerpt"] = conclusion_match.group(2)[:500] + "..."
+            
+        # Count figures/tables
+        metadata["figure_count"] = pdf_text.lower().count("figure")
+        metadata["table_count"] = pdf_text.lower().count("table")
+        
+        return metadata
+    
+    
     def build_index(self, refresh: bool = False) -> None:
         """
         Build or refresh the vector index with advanced configuration
@@ -237,14 +265,14 @@ class IndexManager:
 
     def _save_metadata(self) -> None:
         """Save paper metadata to JSON"""
-        with open(self.metadata_dir / "papers.json", "w") as f:
-            json.dump(self.papers, f, indent=2)
+        with open(self.metadata_dir / "papers.json", "w") as file:
+            json.dump(self.papers, file, indent=2)
 
     def _load_metadata(self) -> None:
         """Load paper metadata from JSON"""
         try:
-            with open(self.metadata_dir / "papers.json", "r") as f:
-                self.papers = json.load(f)
+            with open(self.metadata_dir / "papers.json", "r") as file:
+                self.papers = json.load(file)
         except FileNotFoundError:
             self.papers = []
 
@@ -255,7 +283,6 @@ class IndexManager:
     def _extract_pdf_text(self, pdf_path: Path) -> str:
         """Extract text from PDF using PyMuPDF or fallback"""
         try:
-            import fitz  # PyMuPDF
             doc = fitz.open(pdf_path)
             text = ""
             for page in doc:
@@ -266,3 +293,5 @@ class IndexManager:
             from pypdf import PdfReader
             reader = PdfReader(pdf_path)
             return "\n".join(page.extract_text() for page in reader.pages)
+    
+    
