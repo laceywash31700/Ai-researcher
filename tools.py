@@ -5,7 +5,7 @@ import pytesseract
 from pdf2image import convert_from_path
 import re
 import time 
-from typing import List, Dict
+from typing import List, Dict, Any
 from pathlib import Path
 import logging
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -26,19 +26,51 @@ logger = logging.getLogger(__name__)
 client = arxiv.Client()
 
 
+def _extract_arxiv_id(url: str) -> str:
+    """
+    Extracts the arXiv ID from a URL in any of these formats:
+    - http://arxiv.org/abs/2504.13775v1
+    - https://arxiv.org/pdf/2504.13775v1.pdf
+    - http://arxiv.org/abs/2106.12345
+    - https://arxiv.org/abs/math/0612345v2
+    
+    Returns:
+        The arXiv ID (e.g., "2504.13775v1" or "math/0612345v2")
+    """
+    pattern = r'arxiv\.org/(?:abs|pdf)/(.+?)(?:\.pdf|$)'
+    match = re.search(pattern, url)
+    if match:
+        return match.group(1)
+    raise ValueError(f"Could not extract arXiv ID from URL: {url}")
+
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-def fetch_from_arxiv(title: str, max_results: int = 10):
+def fetch_from_arxiv(title: str, max_results: int = 10) -> List[Dict[str, Any]]:
+    """
+    Fetch papers from arXiv with Pinecone-compatible metadata formatting.
+    
+    Args:
+        title: Search query string
+        max_results: Number of results to return (1-100)
+        
+    Returns:
+        List of paper dictionaries with validated metadata
+        
+    Raises:
+        ValueError: For invalid inputs or API errors
+        RuntimeError: For temporary failures
+    """
+    # Input validation
     if not isinstance(title, str) or not title.strip():
         logger.error("Invalid title format")
         raise ValueError("Title must be a non-empty string")
-    if not isinstance(max_results, int) or max_results <= 0:
+        
+    if not isinstance(max_results, int) or not (1 <= max_results <= 100):
         logger.error(f"Invalid max_results: {max_results}")
-        raise ValueError("max_results must be a positive integer")
+        raise ValueError("max_results must be an integer between 1-100")
 
     try:
-        search_query = f'all:"{title}"'
         search = arxiv.Search(
-            query=search_query,
+            query=f'all:"{title}"',
             max_results=max_results,
             sort_by=arxiv.SortCriterion.SubmittedDate,
         )
@@ -46,37 +78,44 @@ def fetch_from_arxiv(title: str, max_results: int = 10):
         papers = []
         for result in client.results(search):
             try:
+                arxiv_id = _extract_arxiv_id(result.entry_id)
+                
+                # Convert all fields to Pinecone-compatible types
                 paper_info = {
-                    "title": result.title,
-                    "summary": result.summary,
-                    "published": result.published,
-                    "journal_ref": result.journal_ref,
-                    "doi": result.doi,
-                    "primary_category": result.primary_category,
-                    "categories": result.categories,
-                    "pdf_url": result.pdf_url,
-                    "arxiv_url": result.entry_id,
-                    "authors": [author.name for author in result.authors],
+                    "arxiv_id": str(arxiv_id),
+                    "title": str(result.title),
+                    "summary": str(result.summary).replace('\n', ' ').strip(),
+                    "published": result.published.isoformat(),  # Convert datetime to string
+                    "journal_ref": str(result.journal_ref) if result.journal_ref else "",
+                    "doi": str(result.doi) if result.doi else "",
+                    "primary_category": str(result.primary_category),
+                    "categories": list(result.categories),  # Ensure this is a list
+                    "pdf_url": str(result.pdf_url),
+                    "arxiv_url": str(result.entry_id),
+                    "authors": [str(author.name) for author in result.authors],
+                    "version": int(re.search(r'v(\d+)$', arxiv_id).group(1)) if 'v' in arxiv_id else 1,
                 }
+                
+                # Remove empty fields that might cause issues
+                paper_info = {k: v for k, v in paper_info.items() if v not in [None, ""]}
                 papers.append(paper_info)
+                
             except Exception as e:
                 logger.warning(
-                    f"Error processing paper {getattr(result, 'entry_id', 'unknown')}: {str(e)}"
+                    f"Skipping paper {getattr(result, 'entry_id', 'unknown')}: {str(e)}",
+                    exc_info=True
                 )
                 continue
             
-        print(papers)
-        if not papers:
-            logger.warning(f"No valid papers found for query: {title}")
+        logger.info(f"Found {len(papers)} papers for query: '{title}'")
         return papers
 
     except arxiv.ArXivError as e:
         logger.error(f"arXiv API error: {str(e)}")
-        raise ValueError(f"arXiv search failed. Please try different terms. Technical details: {str(e)}")
+        raise ValueError(f"Search failed for '{title}'. Try different terms. Details: {str(e)}")
     except Exception as e:
-        logger.exception("Unexpected arXiv fetch error")  
-        raise RuntimeError(f"Temporary system issue. Please try again later. Reference: {id(e)}") from e
-
+        logger.exception("Unexpected arXiv fetch error")
+        raise RuntimeError("Temporary search issue. Please try again later") from e
 
     
 def download_pdf(pdf_url: str, output_file_name: str, storage_dir: Path = Path("storage/papers")) -> str:

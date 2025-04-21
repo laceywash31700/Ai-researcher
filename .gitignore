@@ -175,3 +175,44 @@ cython_debug/
 
 # index
 index/
+
+#logs
+research_tools.log
+
+# Add these to your existing .gitignore
+
+# Pinecone/Vector DB files
+storage/
+*.pkl
+
+# Large data files
+*.pdf
+*.csv
+*.parquet
+
+# API keys and sensitive data
+secrets.*
+*.key
+config.yaml
+config.json
+
+# Streamlit cache
+.streamlit/
+
+# Jupyter notebooks output cells
+*.ipynb_checkpoints/
+
+# ML/DS specific
+*.h5
+*.pth
+*.pt
+*.bin
+*.onnx
+
+# Dataset folders
+data/
+datasets/
+
+# Specific to your project
+metadata/
+papers.json

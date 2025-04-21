@@ -161,18 +161,18 @@ class Agent:
             ),
         )
 
-    def chat(self, user_input: str) -> str:
+    def chat(self, message: str) -> str:
         try:
             # Handle direct paper searches
-            if any(keyword in user_input.lower() for keyword in ["papers about", "find papers", "research on"]):
+            if any(keyword in message.lower() for keyword in ["papers about", "find papers", "research on"]):
                 papers = fetch_from_arxiv(
-                    query=user_input.replace("papers about", "").strip(), 
+                    query=message.replace("papers about", "").strip(), 
                     max_results=5
                 )
-                return format_arxiv_results(papers, user_input)
+                return format_arxiv_results(papers, message)
             
             # Handle PDF analysis requests
-            if "analyze the paper" in user_input.lower() or "analyze it" in user_input.lower():
+            if "analyze the paper" in message.lower() or "analyze it" in message.lower():
                 # Default path - you might want to make this configurable
                 pdf_path = "C:\\Users\\Owner\\Desktop\\Ai-researcher\\storage\\papers\\Quantum_Computing_Paper_1.pdf"
                 
@@ -185,7 +185,7 @@ class Agent:
                 return f"Text extracted successfully. Analysis results:\n{analysis}"
                 
             # For all other queries, use the agent
-            response = self.agent.chat(user_input)
+            response = self.agent.chat(message)
             
             # Handle the response format consistently
             if hasattr(response, 'response'):
@@ -196,9 +196,9 @@ class Agent:
 
         except Exception as e:
             logger.error(f"Chat error: {str(e)}")
-            return self._format_error(e, user_input)
+            return self._format_error(e, message)
         
-    def _format_error(self, error: Exception, user_input: str) -> str:
+    def _format_error(self, error: Exception, message: str) -> str:
         """User-friendly error messages"""
         error_msg = str(error).lower()
          

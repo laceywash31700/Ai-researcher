@@ -1,5 +1,5 @@
 from llama_index.core import Document, Settings, VectorStoreIndex, StorageContext, load_index_from_storage
-from llama_index.core.node_parser import SemanticSplitterNodeParser, SentenceSplitter
+from llama_index.core.node_parser import SemanticSplitterNodeParser
 from llama_index.core.postprocessor import SimilarityPostprocessor, KeywordNodePostprocessor
 from llama_index.core.retrievers import AutoMergingRetriever
 from llama_index.core.indices.postprocessor import FixedRecencyPostprocessor
@@ -47,16 +47,15 @@ class IndexManager:
         
         Settings.embed_model = self.embedding_model
         Settings.chunk_size = 1024
-        Settings.chunk_overlap = 200
+        Settings.chunk_overlap = 50
 
-    def fetch_and_cache_papers(self, query: str, max_results: int = 10, days_old: Optional[int] = None) -> None:
+    def fetch_and_cache_papers(self, query: str, max_results: int = 10) -> None:
         """
         Fetch papers from arXiv and cache metadata
         
         Args:
             query: Search query
             max_results: Maximum papers to fetch
-            days_old: Only fetch papers from last N days
         """
         try:
             self.papers = fetch_from_arxiv(query, max_results)
@@ -164,7 +163,15 @@ class IndexManager:
         """
         if refresh or not self._index_exists():
             if not self.documents:
-                raise ValueError("No documents available to index")
+            # Try loading existing papers first
+                self._load_metadata()
+            if self.papers:
+                self.create_documents()
+            else:
+                raise ValueError(
+                    "No documents available. "
+                    "Call fetch_and_cache_papers() first or check storage."
+                )
                 
             self.index = VectorStoreIndex.from_documents(
                 self.documents,
@@ -225,6 +232,10 @@ class IndexManager:
     def get_paper_by_id(self, arxiv_id: str) -> Optional[Dict]:
         """Retrieve paper metadata by arXiv ID"""
         return next((p for p in self.papers if p.get('arxiv_id') == arxiv_id), None)
+    
+    def list_papers(self) -> List[Dict]:
+        for paper in self.papers:
+            print(f"Title: {paper['title']}, Authors: {', '.join(paper['authors'])}")
 
     def search_papers(self, query: str, **kwargs) -> List[Dict]:
         """
@@ -264,9 +275,17 @@ class IndexManager:
         logger.info("Persisted index and metadata")
 
     def _save_metadata(self) -> None:
-        """Save paper metadata to JSON"""
+        """Save paper metadata to JSON with datetime handling"""
+        def default_serializer(obj):
+            if hasattr(obj, 'isoformat'):
+                return obj.isoformat()
+            elif hasattr(obj, '__dict__'):
+                return obj.__dict__
+            raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
         with open(self.metadata_dir / "papers.json", "w") as file:
-            json.dump(self.papers, file, indent=2)
+            json.dump(self.papers, file, indent=2, default=default_serializer)
+
 
     def _load_metadata(self) -> None:
         """Load paper metadata from JSON"""

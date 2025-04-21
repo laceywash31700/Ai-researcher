@@ -6,6 +6,14 @@ from llama_index.llms.openai import OpenAI
 # 1. Force reload .env file
 load_dotenv(override=True)
 
+
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+if not PINECONE_API_KEY:
+    raise ValueError(
+        "PINECONE_API_KEY not found in.env file. "
+        "Please add: PINECONE_API_KEY=your-actual-key"
+    )
+
 # 2. Explicitly verify the API key exists
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
