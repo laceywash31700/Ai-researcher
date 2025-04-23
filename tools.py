@@ -174,7 +174,6 @@ def extract_pdf_text(
     """
     text = ""
     
-    # Method 1: PyMuPDF (fitz)
     if not use_ocr:
         try:
             with fitz.open(pdf_path) as doc:
@@ -184,7 +183,6 @@ def extract_pdf_text(
         except Exception as e:
             logger.warning(f"PyMuPDF failed: {str(e)}")
     
-    # Method 2: pdfplumber
     try:
         import pdfplumber
         with pdfplumber.open(pdf_path) as pdf:
@@ -200,7 +198,6 @@ def extract_pdf_text(
     except Exception as e:
         logger.warning(f"pdfplumber failed: {str(e)}")
     
-    # Method 3: OCR
     try:
         images = convert_from_path(pdf_path)
         text = "\n".join(
