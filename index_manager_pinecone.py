@@ -1,9 +1,10 @@
 from constants import PINECONE_API_KEY
-from pinecone import Pinecone
 from index_manager import IndexManager
 from llama_index.vector_stores.pinecone import PineconeVectorStore
+from pinecone import Pinecone
 from llama_index.core import StorageContext, VectorStoreIndex, Settings
 from typing import List, Dict
+
 import logging
 
 logger = logging.getLogger(__name__)

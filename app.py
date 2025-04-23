@@ -1,3 +1,7 @@
+import os
+os.environ["TIKTOKEN_CACHE_DIR"] = "/tmp/tiktoken_cache"
+os.makedirs(os.environ["TIKTOKEN_CACHE_DIR"], exist_ok=True)
+
 import streamlit as st
 from agent import Agent
 from index_manager_pinecone import IndexManagerPinecone
@@ -45,56 +49,6 @@ if "messages" not in st.session_state:
 
 # Sidebar controls
 with st.sidebar:
-    # st.title("🔍 Paper Browser")
-    
-    # # PDF Download Control
-    # include_pfetch_and_update_papers,_and_update_papers,st.checkbox(
-    #     "Include PDF content", 
-    #     value=True,
-    #     help="Process full PDF text for more comprehensive answers"
-    # )
-    
-    # if st.session_state.agent and st.session_state.agent.index:  # <-- SAFE CHECK
-    #     manager = st.session_state.agent.index
-    
-    #     if st.button("🔄 Refresh Index"):
-    #         with st.status("Rebuilding index..."):
-    #             manager = st.session_state.agent.index
-    #             manager.create_documents()
-    #             manager.build_index()
-    #             st.success("Index refreshed successfully!")
-    #     else:
-    #         st.warning("Index features not available")
-    
-    # # Paper Browser Section
-    # st.subheader("📚 Indexed Papers")
-    # if st.session_state.agent:
-    #     manager = st.session_state.agent.index
-    #     search_term = st.text_input("Search papers in index")
-        
-    #     # Display papers with filtering
-    #     filtered_papers = [
-    #         p for p in manager.documents 
-    #         if not search_term or 
-    #         search_term.lower() in p['title'].lower() or 
-    #         search_term.lower() in p['summary'].lower()
-    #     ]
-        
-    #     for paper in filtered_papers[:10]:  # Limit to 10 for performance
-    #         with st.expander(f"{paper['title'][:50]}..."):
-    #             st.write(f"**Authors**: {', '.join(paper['authors'])}")
-    #             st.write(f"**Published**: {paper['published']}")
-    #             st.write(f"**Summary**: {paper['summary'][:200]}...")
-    #             if st.button("View Details", key=paper['arxiv_id']):
-    #                 st.session_state.selected_paper = paper
-                    
-    # # Show selected paper details in main area if clicked
-    # if "selected_paper" in st.session_state:
-    #     paper = st.session_state.selected_paper
-    #     st.sidebar.subheader(paper['title'])
-    #     st.sidebar.write(f"**ArXiv ID**: {paper['arxiv_id']}")
-    #     st.sidebar.write(f"**PDF**: [Download]({paper['pdf_url']})")
-
 # Main chat interface
     st.title("📚 AI Research Paper Assistant")
 
