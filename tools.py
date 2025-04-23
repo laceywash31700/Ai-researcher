@@ -1,12 +1,16 @@
 import arxiv
 import requests
-import fitz
 import pytesseract
 from pdf2image import convert_from_path
 import re
 from typing import List, Dict, Any
 from pathlib import Path
 import logging
+from pdfminer.high_level import extract_pages
+from pdfminer.layout import LTTextContainer, LTFigure, LTRect
+from pdf2image import convert_from_path
+from PyPDF2 import PdfReader
+import pytesseract
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 
@@ -152,101 +156,84 @@ def download_pdf(pdf_url: str, output_file_name: str, storage_dir: Path = Path("
             full_path.unlink()
         raise
 
+def clean_text(text: str) -> str:
+    """Clean extracted text."""
+    text = re.sub(r'\s+', ' ', text)  # Remove excessive whitespace
+    return text.strip()
 
-def extract_pdf_text(
-    pdf_path: Path,
-    use_ocr: bool = False,
-    ocr_languages: str = 'eng'
-) -> str:
-    """
-    Robust PDF text extraction with fallbacks:
-    1. Try PyMuPDF (fastest)
-    2. Try pdfplumber (better for some PDFs)
-    3. Fallback to OCR if needed
+def extract_pdf_text(pdf_path: str, use_ocr: bool = False) -> str:
+    """Extract text from PDF, with optional OCR fallback."""
+    full_text = []
     
-    Args:
-        pdf_path: Path to PDF file
-        use_ocr: Force OCR even if text layers exist
-        ocr_languages: Languages for Tesseract (e.g., 'eng+fra')
-    
-    Returns:
-        Extracted text
-    """
-    text = ""
-    
-    if not use_ocr:
-        try:
-            with fitz.open(pdf_path) as doc:
-                text = "\n".join(page.get_text() for page in doc)
-            if text.strip():
-                return text
-        except Exception as e:
-            logger.warning(f"PyMuPDF failed: {str(e)}")
-    
+    # First try standard text extraction
     try:
-        import pdfplumber
-        with pdfplumber.open(pdf_path) as pdf:
-            text = "\n".join(
-                page.extract_text() 
-                for page in pdf.pages 
-                if page.extract_text()
-            )
-        if text.strip():
-            return text
-    except ImportError:
-        logger.warning("pdfplumber not available")
+        reader = PdfReader(pdf_path)
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                full_text.append(clean_text(text))
     except Exception as e:
-        logger.warning(f"pdfplumber failed: {str(e)}")
+        print(f"Standard extraction failed: {e}")
     
-    try:
+    # If no text found or OCR requested, use OCR
+    if not full_text or use_ocr:
         images = convert_from_path(pdf_path)
-        text = "\n".join(
-            pytesseract.image_to_string(
-                image, 
-                lang=ocr_languages
-            ) 
-            for image in images
-        )
-        return text
-    except Exception as e:
-        logger.error(f"OCR failed: {str(e)}")
-        raise ValueError(f"All text extraction methods failed: {str(e)}")
+        for image in images:
+            text = pytesseract.image_to_string(image)
+            full_text.append(clean_text(text))
     
+    return "\n".join(full_text)
+        
 def analyze_pdf_structure(pdf_path: Path) -> Dict:
     """
-    Extract PDF metadata and structure:
-    - Sections
-    - Figures/Tables
-    - Math content
+    Extract PDF structure using PyPDF2 and pdfminer.six
     """
     try:
-        text = extract_pdf_text(pdf_path)
+        # Get text content using existing extract_text_from_pdf function
+        text = extract_pdf_text(str(pdf_path))
         
-        # Extract sections
+        # Initialize PDF reader
+        reader = PdfReader(pdf_path)
+        
+        # Extract document structure
         sections = {}
-        for match in re.finditer(r'\n(\d+\.\s*[A-Z][^\n]+)', text):
-            sections[match.group(1)] = match.start()
+        figures = 0
+        tables = 0
+        equations = 0
         
-        # Count special elements
-        stats = {
-            'figures': text.lower().count('figure'),
-            'tables': text.lower().count('table'),
-            'equations': text.count('$') // 2,  # Rough estimate
-            'pages': len(fitz.open(pdf_path))
-        }
-        
+        for i, page in enumerate(extract_pages(str(pdf_path))):
+            # Extract sections from text
+            if i == 0:  # First page analysis
+                for match in re.finditer(r'\n(\d+\.\s*[A-Z][^\n]+)', text):
+                    sections[match.group(1)] = match.start()
+            
+            # Analyze page layout
+            for element in page:
+                if isinstance(element, LTTextContainer):
+                    # Detect equations (basic pattern matching)
+                    if '$' in element.get_text():
+                        equations += 1
+                elif isinstance(element, LTFigure):
+                    figures += 1
+                elif isinstance(element, LTRect):
+                    tables += 1  # Simple table detection
+
         return {
             'sections': sections,
-            'stats': stats,
+            'stats': {
+                'figures': figures,
+                'tables': tables,
+                'equations': equations,
+                'pages': len(reader.pages)
+            },
             'sample_text': text[:1000] + '...' if text else ''
         }
+        
     except Exception as e:
         logger.error(f"PDF analysis failed: {str(e)}")
         return {'error': str(e)}
 
-def clean_text(text: str) -> str:
-    """Normalize text for LLM processing"""
-    return " ".join(text.replace("\n", " ").replace("\t", " ").split())
+
 
 def format_arxiv_results(papers: List[Dict], query: str) -> str:
     """Convert raw arXiv results to clean Markdown output"""
