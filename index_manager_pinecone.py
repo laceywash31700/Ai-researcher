@@ -1,53 +1,97 @@
-import os
-
 from constants import PINECONE_API_KEY
 from pinecone import Pinecone
-
 from index_manager import IndexManager
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from llama_index.core import StorageContext, VectorStoreIndex, Settings
-from tools import logger
+from typing import List, Dict
+import logging
 
+logger = logging.getLogger(__name__)
 
 
 class IndexManagerPinecone(IndexManager):
-    def __init__(self, embedding_model, index_name, persist_dir: str = "storage"):
-        super().__init__(embedding_model, persist_dir)
-        pc = Pinecone(api_key=PINECONE_API_KEY)
-        self.pinecone_index = pc.Index(index_name)
-        self.vector_store = PineconeVectorStore(pinecone_index=self.pinecone_index)
+    def __init__(
+        self, 
+        embedding_model, 
+        index_name: str, 
+    ):
+        """
+        Pinecone-specific index manager with enhanced capabilities
+        
+        Args:
+            embedding_model: Embedding model to use
+            index_name: Name of Pinecone index
+        """
+        super().__init__(embedding_model)
+        self.documents = []
+        # Initialize Pinecone client
+        self.index_name = index_name
+        self.pc = Pinecone(api_key=PINECONE_API_KEY)
+        # Configure index parameters and Initialize Pinecone index
+        self.pinecone_index = self.pc.Index(self.index_name)
+        # Set up vector store
+        self.vector_store = PineconeVectorStore(
+            pinecone_index=self.pinecone_index
+        )
+        
         self.storage_context = StorageContext.from_defaults(
             vector_store=self.vector_store
         )
+        self.index = None
 
     def create_index(self):
-        self.documents = []
+        """
+        Create Pinecone index with documents
+        """
         self.create_documents()
+        # Configure settings
         Settings.chunk_size = 1024
         Settings.chunk_overlap = 50
-        VectorStoreIndex.from_documents(
+
+        # Create index
+        self.index = VectorStoreIndex.from_documents(
             self.documents,
             storage_context=self.storage_context,
             embed_model=self.embedding_model,
+            show_progress=True
         )
 
     def retrieve_index(self):
-        return VectorStoreIndex.from_vector_store(
-            vector_store=self.vector_store, embed_model=self.embedding_model
+        """Retrieve existing Pinecone index"""
+        if not self.index:
+         self.index = VectorStoreIndex.from_vector_store(
+            vector_store=self.vector_store, 
+            embed_model=self.embedding_model,
+            show_progress=True,
         )
+        return self.index
+        
     
-    def is_index_connected(self) -> bool:
-        """Verify the index is properly connected and accessible"""
+    def upsert_to_index(self, papers: List[Dict]):
         try:
-            # Check basic index stats
-            stats = self.pinecone_index.describe_index_stats()
-            if not stats:
-                return False
+            # 1. Add new papers to local cache
+            self.papers.extend(papers)
+            
+            # 2. Create documents for NEW PAPERS ONLY
+            self.create_documents()
+            
+            # 3. Process ONLY NEW DOCUMENTS
+            new_nodes = []
+            for doc in self.documents[-len(papers):]:  # Only process new docs
+                # Generate node from document
+                node = self.node_parser.get_nodes_from_documents([doc])[0]
                 
-            # Verify we can query the index
-            test_query = [0.0] * self.embedding_model.dimension  # Null vector
-            self.pinecone_index.query(vector=test_query, top_k=1)
+                # MANUALLY SET EMBEDDING
+                node.embedding = self.embedding_model.get_text_embedding(
+                    node.get_content()
+                )
+                new_nodes.append(node)
+            
+            # 4. Add ONLY NEW NODES to Pinecone
+            self.vector_store.add(new_nodes)  # CORRECT: Use manually embedded nodes
+            
             return True
+            
         except Exception as e:
-            logger.error(f"Index connection check failed: {str(e)}")
+            logger.error(f"Upsert failed: {str(e)}")
             return False

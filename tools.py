@@ -4,7 +4,6 @@ import fitz
 import pytesseract
 from pdf2image import convert_from_path
 import re
-import time 
 from typing import List, Dict, Any
 from pathlib import Path
 import logging
@@ -44,12 +43,12 @@ def _extract_arxiv_id(url: str) -> str:
     raise ValueError(f"Could not extract arXiv ID from URL: {url}")
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-def fetch_from_arxiv(title: str, max_results: int = 10) -> List[Dict[str, Any]]:
+def fetch_from_arxiv(query: str, max_results: int = 10) -> List[Dict[str, Any]]:
     """
     Fetch papers from arXiv with Pinecone-compatible metadata formatting.
     
     Args:
-        title: Search query string
+        query: Search query string
         max_results: Number of results to return (1-100)
         
     Returns:
@@ -60,8 +59,8 @@ def fetch_from_arxiv(title: str, max_results: int = 10) -> List[Dict[str, Any]]:
         RuntimeError: For temporary failures
     """
     # Input validation
-    if not isinstance(title, str) or not title.strip():
-        logger.error("Invalid title format")
+    if not isinstance(query, str) or not query.strip():
+        logger.error("Invalid query format")
         raise ValueError("Title must be a non-empty string")
         
     if not isinstance(max_results, int) or not (1 <= max_results <= 100):
@@ -70,7 +69,7 @@ def fetch_from_arxiv(title: str, max_results: int = 10) -> List[Dict[str, Any]]:
 
     try:
         search = arxiv.Search(
-            query=f'all:"{title}"',
+            query=f'all:"{query}"',
             max_results=max_results,
             sort_by=arxiv.SortCriterion.SubmittedDate,
         )
@@ -107,12 +106,12 @@ def fetch_from_arxiv(title: str, max_results: int = 10) -> List[Dict[str, Any]]:
                 )
                 continue
             
-        logger.info(f"Found {len(papers)} papers for query: '{title}'")
+        logger.info(f"Found {len(papers)} papers for query: '{query}'")
         return papers
 
     except arxiv.ArXivError as e:
         logger.error(f"arXiv API error: {str(e)}")
-        raise ValueError(f"Search failed for '{title}'. Try different terms. Details: {str(e)}")
+        raise ValueError(f"Search failed for '{query}'. Try different terms. Details: {str(e)}")
     except Exception as e:
         logger.exception("Unexpected arXiv fetch error")
         raise RuntimeError("Temporary search issue. Please try again later") from e
